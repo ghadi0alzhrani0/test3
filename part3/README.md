@@ -1,37 +1,40 @@
-# HBnB Part 2 - Business Logic and REST API
+# HBnB Part 3 - Authentication and Database
 
 ## Description
 
-This directory contains the Part 2 implementation of the HBnB project.
-It follows the required layered architecture from the project rubric:
-Presentation, Business Logic, Services, and Persistence.
+This directory extends the HBnB business logic and REST API created in
+Part 2. It adds password hashing, JWT authentication, role-based access
+control, and persistent SQLite storage with SQLAlchemy.
 
-The application uses Flask, Flask-RESTX, the Facade pattern, and an
-in-memory repository. The repository is intentionally temporary for Part
-2 and is designed to be replaced by SQLAlchemy persistence in Part 3.
+The project keeps the same layered architecture:
+
+- Presentation layer: Flask-RESTX API endpoints.
+- Business Logic layer: User, Place, Review, and Amenity models.
+- Service layer: HBnB Facade.
+- Persistence layer: repository classes backed by SQLAlchemy.
+
+## Main Features
+
+- Password hashing with Flask-Bcrypt.
+- Login with JWT access tokens.
+- Authenticated user and administrator permissions.
+- Ownership checks for places and reviews.
+- SQLite persistence with Flask-SQLAlchemy.
+- One-to-many and many-to-many entity relationships.
+- SQL scripts for schema creation and initial data.
+- Mermaid entity-relationship diagram.
 
 ## Project Structure
 
-- `app/api/v1`: REST endpoints for users, amenities, places, and reviews.
-- `app/models`: Business entities and validation logic.
-- `app/services`: Facade that coordinates models and repositories.
-- `app/persistence`: Abstract repository and in-memory implementation.
-- `config.py`: Application configuration.
-- `run.py`: Application entry point.
-- `requirements.txt`: Python dependencies.
-- `tests`: Unit tests for the API endpoints.
-- `TESTING.md`: Manual and automated testing report.
-
-## Implemented Entities
-
-- `User`: first name, last name, email, admin flag, timestamps, and UUID.
-- `Amenity`: name, timestamps, and UUID.
-- `Place`: title, description, price, coordinates, owner, amenities,
-  reviews, timestamps, and UUID.
-- `Review`: text, rating, user, place, timestamps, and UUID.
-
-Validation is implemented in the model layer. Invalid input raises
-`ValueError` and the API converts it to a `400 Bad Request` response.
+- `app/api/v1`: REST API endpoints.
+- `app/models`: SQLAlchemy models and validation.
+- `app/services`: Facade and specialized repositories.
+- `app/persistence`: repository interface and implementations.
+- `sql_scripts`: database schema and initial data.
+- `tests`: automated API and persistence tests.
+- `ER_DIAGRAM.md`: Mermaid database diagram.
+- `config.py`: application and database configuration.
+- `run.py`: application entry point.
 
 ## Installation
 
@@ -39,16 +42,41 @@ Validation is implemented in the model layer. Invalid input raises
 python3 -m pip install -r requirements.txt
 ```
 
+## Database Initialization
+
+Create the mapped tables:
+
+```bash
+flask --app run.py shell
+```
+
+Then run:
+
+```python
+from app import db
+db.create_all()
+exit()
+```
+
+Load the initial administrator and amenities:
+
+```bash
+sqlite3 instance/development.db < sql_scripts/seed.sql
+```
+
+The initial administrator credentials are:
+
+```text
+Email: admin@hbnb.io
+Password: admin1234
+```
+
+The password is stored as a bcrypt hash, not as plaintext.
+
 ## Running the Application
 
 ```bash
 python3 run.py
-```
-
-The application runs at:
-
-```text
-http://127.0.0.1:5000
 ```
 
 Swagger documentation is available at:
@@ -57,40 +85,34 @@ Swagger documentation is available at:
 http://127.0.0.1:5000/api/v1/
 ```
 
-## API Endpoints
+## Authentication
 
-- `POST /api/v1/users/`
-- `GET /api/v1/users/`
-- `GET /api/v1/users/<user_id>`
-- `PUT /api/v1/users/<user_id>`
-- `POST /api/v1/amenities/`
-- `GET /api/v1/amenities/`
-- `GET /api/v1/amenities/<amenity_id>`
-- `PUT /api/v1/amenities/<amenity_id>`
-- `POST /api/v1/places/`
-- `GET /api/v1/places/`
-- `GET /api/v1/places/<place_id>`
-- `PUT /api/v1/places/<place_id>`
-- `GET /api/v1/places/<place_id>/reviews`
-- `POST /api/v1/reviews/`
-- `GET /api/v1/reviews/`
-- `GET /api/v1/reviews/<review_id>`
-- `PUT /api/v1/reviews/<review_id>`
-- `DELETE /api/v1/reviews/<review_id>`
+Log in with:
+
+```http
+POST /api/v1/auth/login
+```
+
+Protected requests must include:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+The JWT can be checked with:
+
+```http
+GET /api/v1/protected
+```
+
+Public users can retrieve places. Authenticated users can manage their
+own profile, places, and reviews. Administrators can manage users and
+amenities and can bypass place and review ownership restrictions.
 
 ## Running Tests
 
 ```bash
-python3 -m unittest discover -s tests
+python3 -m unittest discover -s tests -v
 ```
 
-See `TESTING.md` for the cURL test plan, validation cases, and testing
-summary.
-
-## Current Persistence
-
-Part 2 uses an in-memory repository. Stored data exists only while the
-application is running and will be lost when the server stops.
-
-The repository will be replaced by a database-backed implementation in
-Part 3.
+See `TESTING.md` for the test coverage and manual verification commands.
