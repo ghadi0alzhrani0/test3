@@ -4,9 +4,26 @@
 import uuid
 from datetime import datetime
 
+from app import db
 
-class BaseModel:
+
+class BaseModel(db.Model):
     """Provide common identifiers, timestamps, and update behavior."""
+
+    __abstract__ = True
+
+    id = db.Column(
+        db.String(36),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4())
+    )
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        onupdate=datetime.now,
+        nullable=False
+    )
 
     def __init__(self):
         """Initialize common entity attributes."""

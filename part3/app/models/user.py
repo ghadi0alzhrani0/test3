@@ -3,7 +3,9 @@
 
 import re
 
-from app import bcrypt
+from sqlalchemy.orm import validates
+
+from app import bcrypt, db
 from app.models.base_model import BaseModel
 
 
@@ -12,6 +14,25 @@ EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 class User(BaseModel):
     """Represent an HBnB user."""
+
+    __tablename__ = "users"
+
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    password = db.Column(db.String(128), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+
+    places = db.relationship(
+        "Place",
+        back_populates="owner",
+        cascade="all, delete-orphan"
+    )
+    reviews = db.relationship(
+        "Review",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __init__(
         self,
@@ -41,59 +62,39 @@ class User(BaseModel):
             return False
         return bcrypt.check_password_hash(self.password, password)
 
-    @property
-    def first_name(self):
-        """Return the user's first name."""
-        return self._first_name
-
-    @first_name.setter
-    def first_name(self, value):
+    @validates("first_name")
+    def validate_first_name(self, key, value):
         """Validate and set the user's first name."""
         if not isinstance(value, str) or not value.strip():
             raise ValueError("First name is required")
         if len(value.strip()) > 50:
             raise ValueError("First name must be 50 characters or fewer")
-        self._first_name = value.strip()
+        return value.strip()
 
-    @property
-    def last_name(self):
-        """Return the user's last name."""
-        return self._last_name
-
-    @last_name.setter
-    def last_name(self, value):
+    @validates("last_name")
+    def validate_last_name(self, key, value):
         """Validate and set the user's last name."""
         if not isinstance(value, str) or not value.strip():
             raise ValueError("Last name is required")
         if len(value.strip()) > 50:
             raise ValueError("Last name must be 50 characters or fewer")
-        self._last_name = value.strip()
+        return value.strip()
 
-    @property
-    def email(self):
-        """Return the user's email."""
-        return self._email
-
-    @email.setter
-    def email(self, value):
+    @validates("email")
+    def validate_email(self, key, value):
         """Validate and set the user's email."""
         if not isinstance(value, str) or not value.strip():
             raise ValueError("Email is required")
 
-        email = value.strip()
+        email = value.strip().lower()
         if not EMAIL_PATTERN.match(email):
             raise ValueError("Invalid email format")
 
-        self._email = email
+        return email
 
-    @property
-    def is_admin(self):
-        """Return whether the user is an administrator."""
-        return self._is_admin
-
-    @is_admin.setter
-    def is_admin(self, value):
+    @validates("is_admin")
+    def validate_is_admin(self, key, value):
         """Validate and set the admin flag."""
         if not isinstance(value, bool):
             raise ValueError("is_admin must be a boolean")
-        self._is_admin = value
+        return value

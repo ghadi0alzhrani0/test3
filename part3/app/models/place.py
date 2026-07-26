@@ -1,13 +1,56 @@
 #!/usr/bin/python3
 """Define the Place business entity."""
 
-from app.models.amenity import Amenity
+from sqlalchemy.orm import validates
+
+from app import db
 from app.models.base_model import BaseModel
-from app.models.user import User
+
+
+place_amenity = db.Table(
+    "place_amenity",
+    db.Column(
+        "place_id",
+        db.String(36),
+        db.ForeignKey("places.id"),
+        primary_key=True
+    ),
+    db.Column(
+        "amenity_id",
+        db.String(36),
+        db.ForeignKey("amenities.id"),
+        primary_key=True
+    )
+)
 
 
 class Place(BaseModel):
     """Represent a rentable place."""
+
+    __tablename__ = "places"
+
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, default="", nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    owner_id = db.Column(
+        db.String(36),
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    owner = db.relationship("User", back_populates="places")
+    reviews = db.relationship(
+        "Review",
+        back_populates="place",
+        cascade="all, delete-orphan"
+    )
+    amenities = db.relationship(
+        "Amenity",
+        secondary=place_amenity,
+        backref=db.backref("places", lazy=True)
+    )
 
     def __init__(
         self,
@@ -26,44 +69,27 @@ class Place(BaseModel):
         self.latitude = latitude
         self.longitude = longitude
         self.owner = owner
-        self.reviews = []
-        self.amenities = []
 
-    @property
-    def title(self):
-        """Return the place title."""
-        return self._title
-
-    @title.setter
-    def title(self, value):
+    @validates("title")
+    def validate_title(self, key, value):
         """Validate and set the place title."""
         if not isinstance(value, str) or not value.strip():
             raise ValueError("Title is required")
         if len(value.strip()) > 100:
             raise ValueError("Title must be 100 characters or fewer")
-        self._title = value.strip()
+        return value.strip()
 
-    @property
-    def description(self):
-        """Return the place description."""
-        return self._description
-
-    @description.setter
-    def description(self, value):
+    @validates("description")
+    def validate_description(self, key, value):
         """Validate and set the place description."""
         if value is None:
             value = ""
         if not isinstance(value, str):
             raise ValueError("Description must be a string")
-        self._description = value
+        return value
 
-    @property
-    def price(self):
-        """Return the nightly price."""
-        return self._price
-
-    @price.setter
-    def price(self, value):
+    @validates("price")
+    def validate_price(self, key, value):
         """Validate and set the nightly price."""
         try:
             price = float(value)
@@ -72,15 +98,10 @@ class Place(BaseModel):
 
         if price < 0:
             raise ValueError("Price must be non-negative")
-        self._price = price
+        return price
 
-    @property
-    def latitude(self):
-        """Return the latitude."""
-        return self._latitude
-
-    @latitude.setter
-    def latitude(self, value):
+    @validates("latitude")
+    def validate_latitude(self, key, value):
         """Validate and set the latitude."""
         try:
             latitude = float(value)
@@ -89,15 +110,10 @@ class Place(BaseModel):
 
         if latitude < -90 or latitude > 90:
             raise ValueError("Latitude must be between -90 and 90")
-        self._latitude = latitude
+        return latitude
 
-    @property
-    def longitude(self):
-        """Return the longitude."""
-        return self._longitude
-
-    @longitude.setter
-    def longitude(self, value):
+    @validates("longitude")
+    def validate_longitude(self, key, value):
         """Validate and set the longitude."""
         try:
             longitude = float(value)
@@ -106,19 +122,7 @@ class Place(BaseModel):
 
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude must be between -180 and 180")
-        self._longitude = longitude
-
-    @property
-    def owner(self):
-        """Return the owner."""
-        return self._owner
-
-    @owner.setter
-    def owner(self, value):
-        """Validate and set the owner."""
-        if not isinstance(value, User):
-            raise ValueError("Owner must be a valid user")
-        self._owner = value
+        return longitude
 
     def add_review(self, review):
         """Attach a review to the place."""
@@ -138,6 +142,8 @@ class Place(BaseModel):
 
     def add_amenity(self, amenity):
         """Attach an amenity to the place."""
+        from app.models.amenity import Amenity
+
         if not isinstance(amenity, Amenity):
             raise ValueError("Amenity must be valid")
         if amenity not in self.amenities:
@@ -146,6 +152,8 @@ class Place(BaseModel):
 
     def set_amenities(self, amenities):
         """Replace the place amenities."""
+        from app.models.amenity import Amenity
+
         if amenities is None:
             amenities = []
         if not isinstance(amenities, list):
