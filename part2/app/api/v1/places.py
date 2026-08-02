@@ -94,7 +94,9 @@ def serialize_place_creation(place):
         "latitude": place.latitude,
         "longitude": place.longitude,
         "owner_id": place.owner.id,
-        "amenities": [amenity.id for amenity in place.amenities]
+        "amenities": [amenity.id for amenity in place.amenities],
+        "created_at": place.created_at.isoformat(),
+        "updated_at": place.updated_at.isoformat()
     }
 
 
@@ -117,6 +119,8 @@ def serialize_place_details(place):
         "price": place.price,
         "latitude": place.latitude,
         "longitude": place.longitude,
+        "created_at": place.created_at.isoformat(),
+        "updated_at": place.updated_at.isoformat(),
         "owner": serialize_owner(place.owner),
         "amenities": [
             serialize_amenity(amenity)
@@ -180,7 +184,7 @@ class PlaceResource(Resource):
         if not place:
             return {"error": "Place not found"}, 404
 
-        return {"message": "Place updated successfully"}, 200
+        return serialize_place_details(place), 200
 
 
 @api.route("/<place_id>/reviews")
