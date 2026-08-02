@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 """Unit tests for HBnB Part 2 endpoints."""
 
+import time
 import unittest
 
 from app import create_app
+from app.persistence.repository import InMemoryRepository
+from app.services.facade import HBnBFacade
 
 
 class TestHBnBEndpoints(unittest.TestCase):
@@ -60,6 +63,19 @@ class TestHBnBEndpoints(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 201)
         return response.get_json()
+
+    def test_facade_uses_in_memory_repositories(self):
+        """The facade keeps one repository for each main entity."""
+        facade = HBnBFacade()
+        repositories = (
+            facade.user_repo,
+            facade.place_repo,
+            facade.review_repo,
+            facade.amenity_repo
+        )
+
+        for repository in repositories:
+            self.assertIsInstance(repository, InMemoryRepository)
 
     def test_create_user_and_retrieve_list(self):
         """Users can be created and listed."""
@@ -171,15 +187,17 @@ class TestHBnBEndpoints(unittest.TestCase):
     def test_update_place(self):
         """A place can be partially updated."""
         place = self.create_place()
+        old_updated_at = place["updated_at"]
+        time.sleep(0.001)
         response = self.client.put(
             f"/api/v1/places/{place['id']}",
             json={"title": "Updated Apartment", "price": 125.0}
         )
         self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(f"/api/v1/places/{place['id']}")
-        self.assertEqual(response.get_json()["title"], "Updated Apartment")
-        self.assertEqual(response.get_json()["price"], 125.0)
+        data = response.get_json()
+        self.assertEqual(data["title"], "Updated Apartment")
+        self.assertEqual(data["price"], 125.0)
+        self.assertNotEqual(data["updated_at"], old_updated_at)
 
     def test_place_description_is_optional(self):
         """A place can be created without a description."""
@@ -269,11 +287,16 @@ class TestHBnBEndpoints(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()[0]["id"], review["id"])
 
+        time.sleep(0.001)
         response = self.client.put(
             f"/api/v1/reviews/{review['id']}",
             json={"text": "Amazing stay!", "rating": 4}
         )
         self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["text"], "Amazing stay!")
+        self.assertEqual(data["rating"], 4)
+        self.assertNotEqual(data["updated_at"], review["updated_at"])
 
         response = self.client.delete(f"/api/v1/reviews/{review['id']}")
         self.assertEqual(response.status_code, 200)
