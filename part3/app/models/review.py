@@ -17,6 +17,10 @@ class Review(BaseModel):
             "place_id",
             name="uq_review_user_place"
         ),
+        db.CheckConstraint(
+            "rating BETWEEN 1 AND 5",
+            name="ck_review_rating"
+        )
     )
 
     text = db.Column(db.Text, nullable=False)
@@ -34,6 +38,18 @@ class Review(BaseModel):
 
     place = db.relationship("Place", back_populates="reviews")
     user = db.relationship("User", back_populates="reviews")
+    rating_details = db.relationship(
+        "ReviewRatingDetails",
+        back_populates="review",
+        cascade="all, delete-orphan",
+        uselist=False
+    )
+    response = db.relationship(
+        "ReviewResponse",
+        back_populates="review",
+        cascade="all, delete-orphan",
+        uselist=False
+    )
 
     def __init__(self, text, rating, place, user):
         """Initialize a review with validated attributes."""

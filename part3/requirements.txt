@@ -4,3 +4,4 @@ flask-jwt-extended
 flask-restx
 flask-sqlalchemy
 sqlalchemy
+PyMySQL

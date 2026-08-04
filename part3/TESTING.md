@@ -25,12 +25,15 @@ The suite covers:
 - Duplicate review prevention.
 - Model validation from Part 2.
 - SQLAlchemy persistence and bidirectional relationships.
+- Updated entity data and `updated_at` values in PUT responses.
 - Swagger route generation.
+- Extended Part 1 location, ownership, place detail, and booking entities.
+- Detailed ratings, owner responses, guest reviews, and notifications.
 
-Latest local result:
+The complete suite contains 19 tests. A successful run ends with:
 
 ```text
-Ran 17 tests
+Ran 19 tests
 OK
 ```
 
@@ -41,6 +44,7 @@ Create a separate database with the raw SQL scripts:
 ```bash
 sqlite3 hbnb_test.db < sql_scripts/schema.sql
 sqlite3 hbnb_test.db < sql_scripts/seed.sql
+sqlite3 hbnb_test.db < sql_scripts/test_crud.sql
 ```
 
 Verify the initial data:
@@ -57,6 +61,20 @@ Expected administrator:
 admin@hbnb.io|1
 ```
 
+Expected CRUD test output:
+
+```text
+place|SQL Test Place|125
+review|Updated SQL review|4
+booking|confirmed
+tables tested|22
+deleted notifications|0
+```
+
+`test_crud.sql` runs inside a transaction and finishes with `ROLLBACK`, so
+the test rows do not remain in the database. It covers `INSERT`, `SELECT`,
+`UPDATE`, and `DELETE` while foreign key checking is enabled.
+
 The scripts also enforce:
 
 - Unique user emails.
@@ -65,6 +83,9 @@ The scripts also enforce:
 - One review per user and place.
 - Valid foreign keys.
 - A composite primary key for `place_amenity`.
+- Date ordering and non-negative prices for bookings and seasonal pricing.
+- One-to-one booking guest, review detail, response, and guest review rows.
+- A required recipient for every system notification.
 
 ## Manual API Flow
 

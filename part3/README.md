@@ -33,6 +33,7 @@ The project keeps the same layered architecture:
 - `sql_scripts`: database schema and initial data.
 - `tests`: automated API and persistence tests.
 - `ER_DIAGRAM.md`: Mermaid database diagram.
+- `ER_DIAGRAM.png`: Exported database diagram.
 - `config.py`: application and database configuration.
 - `run.py`: application entry point.
 

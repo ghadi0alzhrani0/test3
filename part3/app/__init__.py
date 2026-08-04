@@ -11,17 +11,16 @@ bcrypt = Bcrypt()
 jwt = JWTManager()
 db = SQLAlchemy()
 
-from app.api.v1.auth import api as auth_ns
-from app.api.v1.amenities import api as amenities_ns
-from app.api.v1.places import api as places_ns
-from app.api.v1.protected import api as protected_ns
-from app.api.v1.reviews import api as reviews_ns
-from app.api.v1.users import api as users_ns
-from app.services import facade
-
 
 def create_app(config_class="config.DevelopmentConfig"):
     """Create and configure the Flask application."""
+    from app.api.v1.amenities import api as amenities_ns
+    from app.api.v1.auth import api as auth_ns
+    from app.api.v1.places import api as places_ns
+    from app.api.v1.protected import api as protected_ns
+    from app.api.v1.reviews import api as reviews_ns
+    from app.api.v1.users import api as users_ns
+
     app = Flask(__name__)
     app.config.from_object(config_class)
     bcrypt.init_app(app)

@@ -12,6 +12,7 @@ class TestConfig:
 
     TESTING = True
     SECRET_KEY = "test-secret-key"
+    JWT_SECRET_KEY = "test-jwt-secret-key-with-32-characters"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -272,7 +273,8 @@ class TestHBnBPart3(unittest.TestCase):
             headers=admin_headers
         )
         self.assertEqual(response.status_code, 201)
-        amenity_id = response.get_json()["id"]
+        amenity = response.get_json()
+        amenity_id = amenity["id"]
 
         response = self.client.put(
             f"/api/v1/amenities/{amenity_id}",
@@ -280,6 +282,10 @@ class TestHBnBPart3(unittest.TestCase):
             headers=admin_headers
         )
         self.assertEqual(response.status_code, 200)
+        updated = response.get_json()
+        self.assertEqual(updated["id"], amenity_id)
+        self.assertEqual(updated["name"], "Fast WiFi")
+        self.assertNotEqual(updated["updated_at"], amenity["updated_at"])
 
     def test_place_owner_is_taken_from_token(self):
         """A new place belongs to the authenticated user."""
@@ -297,6 +303,7 @@ class TestHBnBPart3(unittest.TestCase):
 
         response = self.client.get("/api/v1/places/")
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()[0]["price"], 100.0)
 
         response = self.client.get(f"/api/v1/places/{place['id']}")
         self.assertEqual(response.status_code, 200)
@@ -328,6 +335,10 @@ class TestHBnBPart3(unittest.TestCase):
             headers=self.create_admin()
         )
         self.assertEqual(response.status_code, 200)
+        updated = response.get_json()
+        self.assertEqual(updated["id"], place["id"])
+        self.assertEqual(updated["title"], "Admin Updated")
+        self.assertNotEqual(updated["updated_at"], place["updated_at"])
 
         response = self.client.delete(
             f"/api/v1/places/{place['id']}",
@@ -412,6 +423,10 @@ class TestHBnBPart3(unittest.TestCase):
             headers=self.create_admin()
         )
         self.assertEqual(response.status_code, 200)
+        updated = response.get_json()
+        self.assertEqual(updated["id"], review["id"])
+        self.assertEqual(updated["text"], "Admin change")
+        self.assertNotEqual(updated["updated_at"], review["updated_at"])
 
         response = self.client.delete(
             f"/api/v1/reviews/{review['id']}",

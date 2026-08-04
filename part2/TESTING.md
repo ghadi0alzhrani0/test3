@@ -48,7 +48,7 @@ python3 -m unittest discover -s tests
 Latest local result:
 
 ```text
-Ran 17 tests
+Ran 20 tests
 OK
 ```
 
@@ -81,6 +81,8 @@ the automated endpoint tests.
 | Reject a review with a missing user or place | `400` | `400` | Pass |
 | Get, update, or delete a missing review | `404` | `404` | Pass |
 | Load Swagger UI and all required API paths | `200` | `200` | Pass |
+| Connect location, ownership, and place detail entities | Valid relationships | Valid relationships | Pass |
+| Run booking, pricing, review detail, and notification flow | Valid workflow | Valid workflow | Pass |
 
 All automated cases passed. Swagger JSON includes the user, amenity,
 place, place review, and review routes required for Part 2.
@@ -213,8 +215,8 @@ Expected status: `200 OK`
 ## Summary
 
 The API includes model-level validation, Swagger documentation, and
-automated endpoint tests. The 17 automated tests cover successful
+automated endpoint tests. The 20 automated tests cover successful
 requests, invalid input, boundary values, missing resources, entity
-relationships, review deletion, and Swagger documentation. The manual
-cURL cases above provide black-box requests for successful and failed
-scenarios.
+relationships, review deletion, Swagger documentation, and the extended
+Part 1 business entities. The manual cURL cases above provide black-box
+requests for successful and failed scenarios.

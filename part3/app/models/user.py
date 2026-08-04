@@ -33,6 +33,21 @@ class User(BaseModel):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    bookings = db.relationship(
+        "Booking",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    guest_reviews_received = db.relationship(
+        "GuestReview",
+        back_populates="guest",
+        cascade="all, delete-orphan"
+    )
+    notifications = db.relationship(
+        "SystemNotification",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __init__(
         self,
@@ -49,6 +64,28 @@ class User(BaseModel):
         self.email = email
         self.hash_password(password)
         self.is_admin = is_admin
+
+    def register(self):
+        """Return the registered user identifier."""
+        return self.id
+
+    def login(self, email, password):
+        """Check the user's email and password."""
+        return (
+            isinstance(email, str)
+            and self.email == email.strip().lower()
+            and self.verify_password(password)
+        )
+
+    def book_place(self, booking):
+        """Attach a booking to the user."""
+        if booking not in self.bookings:
+            self.bookings.append(booking)
+
+    def add_review(self, review):
+        """Attach a place review written by the user."""
+        if review not in self.reviews:
+            self.reviews.append(review)
 
     def hash_password(self, password):
         """Hash and store a plaintext password."""

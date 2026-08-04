@@ -18,7 +18,9 @@ def serialize_amenity(amenity):
     """Return a JSON-ready amenity dictionary."""
     return {
         "id": amenity.id,
-        "name": amenity.name
+        "name": amenity.name,
+        "created_at": amenity.created_at.isoformat(),
+        "updated_at": amenity.updated_at.isoformat()
     }
 
 
@@ -83,4 +85,4 @@ class AmenityResource(Resource):
         if not amenity:
             return {"error": "Amenity not found"}, 404
 
-        return {"message": "Amenity updated successfully"}, 200
+        return serialize_amenity(amenity), 200
