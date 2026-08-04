@@ -16,6 +16,9 @@ class Review(BaseModel):
         self.rating = rating
         self.place = place
         self.user = user
+        self.rating_details = None
+        self.response = None
+        user.add_review(self)
 
     @property
     def text(self):

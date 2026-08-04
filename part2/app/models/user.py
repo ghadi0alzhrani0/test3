@@ -19,6 +19,31 @@ class User(BaseModel):
         self.last_name = last_name
         self.email = email
         self.is_admin = is_admin
+        self.places = []
+        self.bookings = []
+        self.reviews = []
+        self.guest_reviews = []
+        self.notifications = []
+
+    def register(self):
+        """Return the registered user identifier."""
+        return self.id
+
+    def login(self, email):
+        """Check whether an email belongs to this user."""
+        return isinstance(email, str) and self.email.lower() == email.lower()
+
+    def book_place(self, booking):
+        """Attach a booking to the user."""
+        if booking not in self.bookings:
+            self.bookings.append(booking)
+            self.save()
+
+    def add_review(self, review):
+        """Attach a place review written by the user."""
+        if review not in self.reviews:
+            self.reviews.append(review)
+            self.save()
 
     @property
     def first_name(self):
