@@ -34,6 +34,17 @@ place_model = api.model("Place", {
     "latitude": fields.Float(required=True, description="Latitude"),
     "longitude": fields.Float(required=True, description="Longitude"),
     "owner_id": fields.String(required=True, description="ID of the owner"),
+    "city_id": fields.String(description="ID of the city"),
+    "place_type_id": fields.String(description="ID of the place type"),
+    "cancellation_policy_id": fields.String(
+        description="ID of the cancellation policy"
+    ),
+    "business_owner_id": fields.String(
+        description="ID of the business owner"
+    ),
+    "number_rooms": fields.Integer(description="Number of rooms"),
+    "number_bathrooms": fields.Integer(description="Number of bathrooms"),
+    "max_guest": fields.Integer(description="Maximum number of guests"),
     "amenities": fields.List(
         fields.String,
         required=False,
@@ -48,6 +59,17 @@ place_update_model = api.model("PlaceUpdate", {
     "latitude": fields.Float(description="Latitude"),
     "longitude": fields.Float(description="Longitude"),
     "owner_id": fields.String(description="ID of the owner"),
+    "city_id": fields.String(description="ID of the city"),
+    "place_type_id": fields.String(description="ID of the place type"),
+    "cancellation_policy_id": fields.String(
+        description="ID of the cancellation policy"
+    ),
+    "business_owner_id": fields.String(
+        description="ID of the business owner"
+    ),
+    "number_rooms": fields.Integer(description="Number of rooms"),
+    "number_bathrooms": fields.Integer(description="Number of bathrooms"),
+    "max_guest": fields.Integer(description="Maximum number of guests"),
     "amenities": fields.List(
         fields.String,
         required=False,
@@ -94,6 +116,18 @@ def serialize_place_creation(place):
         "latitude": place.latitude,
         "longitude": place.longitude,
         "owner_id": place.owner.id,
+        "city_id": place.city.id if place.city else None,
+        "place_type_id": place.place_type.id if place.place_type else None,
+        "cancellation_policy_id": (
+            place.cancellation_policy.id
+            if place.cancellation_policy else None
+        ),
+        "business_owner_id": (
+            place.business_owner.id if place.business_owner else None
+        ),
+        "number_rooms": place.number_rooms,
+        "number_bathrooms": place.number_bathrooms,
+        "max_guest": place.max_guest,
         "amenities": [amenity.id for amenity in place.amenities],
         "created_at": place.created_at.isoformat(),
         "updated_at": place.updated_at.isoformat()
@@ -122,6 +156,26 @@ def serialize_place_details(place):
         "created_at": place.created_at.isoformat(),
         "updated_at": place.updated_at.isoformat(),
         "owner": serialize_owner(place.owner),
+        "city_id": place.city.id if place.city else None,
+        "place_type_id": place.place_type.id if place.place_type else None,
+        "cancellation_policy_id": (
+            place.cancellation_policy.id
+            if place.cancellation_policy else None
+        ),
+        "business_owner_id": (
+            place.business_owner.id if place.business_owner else None
+        ),
+        "number_rooms": place.number_rooms,
+        "number_bathrooms": place.number_bathrooms,
+        "max_guest": place.max_guest,
+        "room_detail_ids": [item.id for item in place.room_details],
+        "availability_ids": [
+            item.id for item in place.availability_periods
+        ],
+        "seasonal_pricing_ids": [
+            item.id for item in place.seasonal_pricing
+        ],
+        "booking_ids": [item.id for item in place.bookings],
         "amenities": [
             serialize_amenity(amenity)
             for amenity in place.amenities

@@ -36,6 +36,10 @@ def serialize_review(review, include_relationships=True):
     if include_relationships:
         data["user_id"] = review.user.id
         data["place_id"] = review.place.id
+        data["rating_details_id"] = (
+            review.rating_details.id if review.rating_details else None
+        )
+        data["response_id"] = review.response.id if review.response else None
 
     return data
 

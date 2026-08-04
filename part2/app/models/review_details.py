@@ -125,5 +125,6 @@ class GuestReview(BaseModel):
             "Respect rules"
         )
         self.review_text = review_text.strip()
+        booking.guest_review = self
         owner.review_guest(self)
         guest.guest_reviews.append(self)
