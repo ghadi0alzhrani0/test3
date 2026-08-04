@@ -3,7 +3,7 @@
 
 from app.models.amenity import Amenity, AmenityCategory
 from app.models.booking import Booking, BookingGuest, BookingHistory
-from app.models.location import City, Country, State
+from app.models.location import City, Country, State, _required_text
 from app.models.notification import SystemNotification
 from app.models.owner import Owner
 from app.models.place import Place
@@ -12,13 +12,15 @@ from app.models.place_details import (
     PlaceAvailability,
     PlaceType,
     RoomDetail,
-    SeasonalPricing
+    SeasonalPricing,
+    _as_date
 )
 from app.models.review import Review
 from app.models.review_details import (
     GuestReview,
     ReviewRatingDetails,
-    ReviewResponse
+    ReviewResponse,
+    _rating
 )
 from app.models.user import User
 from app.persistence.repository import SQLAlchemyRepository
@@ -27,6 +29,57 @@ from app.services.repositories.user_repository import UserRepository
 
 class HBnBFacade:
     """Provide a single interface to the business logic layer."""
+
+    EXTENDED_REPOSITORIES = {
+        "owners": "owner_repo",
+        "countries": "country_repo",
+        "states": "state_repo",
+        "cities": "city_repo",
+        "place_types": "place_type_repo",
+        "cancellation_policies": "cancellation_policy_repo",
+        "amenity_categories": "amenity_category_repo",
+        "room_details": "room_detail_repo",
+        "availability": "availability_repo",
+        "seasonal_pricing": "seasonal_pricing_repo",
+        "bookings": "booking_repo",
+        "booking_guests": "booking_guest_repo",
+        "booking_history": "booking_history_repo",
+        "rating_details": "rating_details_repo",
+        "review_responses": "review_response_repo",
+        "guest_reviews": "guest_review_repo",
+        "notifications": "notification_repo"
+    }
+
+    EXTENDED_UPDATE_FIELDS = {
+        "owners": {
+            "business_name", "contact_person", "email", "password",
+            "phone_number", "commercial_register"
+        },
+        "countries": {"name", "code"},
+        "states": {"name"},
+        "cities": {"name"},
+        "place_types": {"name"},
+        "cancellation_policies": {"name", "description"},
+        "amenity_categories": {"name"},
+        "room_details": {"room_name", "bed_type", "beds_count"},
+        "availability": {"start_date", "end_date", "is_booked"},
+        "seasonal_pricing": {
+            "start_date", "end_date", "special_price"
+        },
+        "booking_guests": {
+            "adults_count", "children_count", "infants_count"
+        },
+        "rating_details": {
+            "cleanliness", "accuracy", "communication", "location",
+            "check_in", "value"
+        },
+        "review_responses": {"response_text"},
+        "guest_reviews": {
+            "cleanliness_rating", "communication_rating",
+            "respect_rules_rating", "review_text"
+        },
+        "notifications": {"notification_type", "content", "is_seen"}
+    }
 
     def __init__(self):
         """Initialize repositories for the main HBnB entities."""
@@ -335,10 +388,23 @@ class HBnBFacade:
             email.strip().lower()
         ):
             raise ValueError("Owner email already registered")
+        register = owner_data.get("commercial_register")
+        if register and self.owner_repo.get_by_attribute(
+            "commercial_register", register.strip()
+        ):
+            raise ValueError("Commercial register already registered")
         return self._store(self.owner_repo, Owner(**owner_data))
 
     def create_country(self, country_data):
         """Create a country."""
+        name = country_data.get("name")
+        code = country_data.get("code")
+        if name and self.country_repo.get_by_attribute("name", name.strip()):
+            raise ValueError("Country already exists")
+        if code and self.country_repo.get_by_attribute(
+            "code", code.strip().upper()
+        ):
+            raise ValueError("Country code already exists")
         return self._store(self.country_repo, Country(**country_data))
 
     def create_state(self, state_data):
@@ -349,6 +415,11 @@ class HBnBFacade:
             data.pop("country_id", None),
             "Country"
         )
+        name = data.get("name")
+        if self._related_name_exists(
+            self.state_repo, name, "country", country
+        ):
+            raise ValueError("State already exists in this country")
         return self._store(self.state_repo, State(country=country, **data))
 
     def create_city(self, city_data):
@@ -359,10 +430,18 @@ class HBnBFacade:
             data.pop("state_id", None),
             "State"
         )
+        name = data.get("name")
+        if self._related_name_exists(self.city_repo, name, "state", state):
+            raise ValueError("City already exists in this state")
         return self._store(self.city_repo, City(state=state, **data))
 
     def create_place_type(self, place_type_data):
         """Create a place type."""
+        name = place_type_data.get("name")
+        if name and self.place_type_repo.get_by_attribute(
+            "name", name.strip()
+        ):
+            raise ValueError("Place type already exists")
         return self._store(
             self.place_type_repo,
             PlaceType(**place_type_data)
@@ -370,6 +449,11 @@ class HBnBFacade:
 
     def create_cancellation_policy(self, policy_data):
         """Create a cancellation policy."""
+        name = policy_data.get("name")
+        if name and self.cancellation_policy_repo.get_by_attribute(
+            "name", name.strip()
+        ):
+            raise ValueError("Cancellation policy already exists")
         return self._store(
             self.cancellation_policy_repo,
             CancellationPolicy(**policy_data)
@@ -377,6 +461,11 @@ class HBnBFacade:
 
     def create_amenity_category(self, category_data):
         """Create an amenity category."""
+        name = category_data.get("name")
+        if name and self.amenity_category_repo.get_by_attribute(
+            "name", name.strip()
+        ):
+            raise ValueError("Amenity category already exists")
         return self._store(
             self.amenity_category_repo,
             AmenityCategory(**category_data)
@@ -443,6 +532,8 @@ class HBnBFacade:
             data.pop("booking_id", None),
             "Booking"
         )
+        if booking.guest_details is not None:
+            raise ValueError("Booking guest details already exist")
         details = BookingGuest(booking=booking, **data)
         return self._store(self.booking_guest_repo, details)
 
@@ -472,6 +563,8 @@ class HBnBFacade:
             data.pop("review_id", None),
             "Review"
         )
+        if review.rating_details is not None:
+            raise ValueError("Review rating details already exist")
         details = ReviewRatingDetails(review=review, **data)
         return self._store(self.rating_details_repo, details)
 
@@ -488,6 +581,8 @@ class HBnBFacade:
             data.pop("owner_id", None),
             "Owner"
         )
+        if review.response is not None:
+            raise ValueError("Review response already exists")
         response = ReviewResponse(review=review, owner=owner, **data)
         return self._store(self.review_response_repo, response)
 
@@ -509,6 +604,8 @@ class HBnBFacade:
             data.pop("guest_id", None),
             "Guest"
         )
+        if booking.guest_review is not None:
+            raise ValueError("Guest review already exists for this booking")
         review = GuestReview(
             booking=booking,
             owner=owner,
@@ -534,6 +631,167 @@ class HBnBFacade:
             **data
         )
         return self._store(self.notification_repo, notification)
+
+    def get_extended_resource(self, resource, object_id):
+        """Retrieve one extended entity through its repository."""
+        return self._extended_repository(resource).get(object_id)
+
+    def get_all_extended_resources(self, resource):
+        """Retrieve all objects for an extended entity."""
+        return self._extended_repository(resource).get_all()
+
+    def update_extended_resource(self, resource, object_id, data):
+        """Validate and update fields supported by an extended entity."""
+        repository = self._extended_repository(resource)
+        obj = repository.get(object_id)
+        if obj is None:
+            return None
+
+        allowed = self.EXTENDED_UPDATE_FIELDS.get(resource)
+        if allowed is None:
+            raise ValueError("This resource is read-only")
+        unknown = set(data) - allowed
+        if unknown:
+            raise ValueError(f"Unsupported field: {sorted(unknown)[0]}")
+
+        prepared = self._prepare_extended_update(resource, obj, data)
+        password = prepared.pop("password", None)
+        if password is not None:
+            obj.hash_password(password)
+        return repository.update(object_id, prepared)
+
+    def mark_notification_read(self, notification_id):
+        """Mark a stored notification as read."""
+        notification = self.notification_repo.get(notification_id)
+        if notification is None:
+            return None
+        notification.mark_as_read()
+        from app import db
+        db.session.commit()
+        return notification
+
+    def _extended_repository(self, resource):
+        """Return the repository assigned to an extended resource name."""
+        repository_name = self.EXTENDED_REPOSITORIES.get(resource)
+        if repository_name is None:
+            raise ValueError("Unsupported resource")
+        return getattr(self, repository_name)
+
+    @staticmethod
+    def _related_name_exists(
+        repository, name, field, related, current_id=None
+    ):
+        """Return whether a related collection already uses a name."""
+        if not isinstance(name, str):
+            return False
+        normalized = name.strip().lower()
+        return any(
+            item.id != current_id
+            and item.name.lower() == normalized
+            and getattr(item, field) is related
+            for item in repository.get_all()
+        )
+
+    @staticmethod
+    def _attribute_exists(repository, field, value, current_id=None):
+        """Return whether another object already uses an attribute value."""
+        if isinstance(value, str):
+            value = value.strip().lower()
+        return any(
+            item.id != current_id
+            and (
+                getattr(item, field).lower()
+                if isinstance(getattr(item, field), str)
+                else getattr(item, field)
+            ) == value
+            for item in repository.get_all()
+        )
+
+    def _prepare_extended_update(self, resource, obj, data):
+        """Normalize values before updating an extended entity."""
+        prepared = data.copy()
+
+        if resource == "owners":
+            if "email" in prepared:
+                email = Owner._required(prepared["email"], "Email", 120)
+                email = email.lower()
+                existing = self.owner_repo.get_by_attribute("email", email)
+                if existing and existing.id != obj.id:
+                    raise ValueError("Owner email already registered")
+                prepared["email"] = email
+            if "commercial_register" in prepared and self._attribute_exists(
+                self.owner_repo,
+                "commercial_register",
+                prepared["commercial_register"],
+                obj.id
+            ):
+                raise ValueError("Commercial register already registered")
+            if "password" in prepared and (
+                not isinstance(prepared["password"], str)
+                or not prepared["password"]
+            ):
+                raise ValueError("Password is required")
+        elif resource == "countries":
+            if "name" in prepared:
+                prepared["name"] = _required_text(
+                    prepared["name"], "Country name"
+                )
+            if "code" in prepared:
+                prepared["code"] = _required_text(
+                    prepared["code"], "Country code", 3
+                ).upper()
+            for field, message in (
+                ("name", "Country already exists"),
+                ("code", "Country code already exists")
+            ):
+                if field in prepared and self._attribute_exists(
+                    self.country_repo, field, prepared[field], obj.id
+                ):
+                    raise ValueError(message)
+        elif resource in {"states", "cities"} and "name" in prepared:
+            prepared["name"] = _required_text(prepared["name"], "Name")
+            related_field = "country" if resource == "states" else "state"
+            if self._related_name_exists(
+                self._extended_repository(resource),
+                prepared["name"],
+                related_field,
+                getattr(obj, related_field),
+                obj.id
+            ):
+                raise ValueError(f"{resource[:-1].title()} already exists")
+        elif resource in {
+            "place_types", "cancellation_policies", "amenity_categories"
+        } and "name" in prepared:
+            if self._attribute_exists(
+                self._extended_repository(resource),
+                "name",
+                prepared["name"],
+                obj.id
+            ):
+                raise ValueError(
+                    f"{resource.replace('_', ' ')[:-1].title()} already exists"
+                )
+        elif resource in {"availability", "seasonal_pricing"}:
+            for field in ("start_date", "end_date"):
+                if field in prepared:
+                    prepared[field] = _as_date(
+                        prepared[field], field.replace("_", " ").title()
+                    )
+            start_date = prepared.get("start_date", obj.start_date)
+            end_date = prepared.get("end_date", obj.end_date)
+            if end_date <= start_date:
+                raise ValueError("End date must be after start date")
+        elif resource in {"rating_details", "guest_reviews"}:
+            for field, value in prepared.items():
+                if field.endswith("rating") or field in {
+                    "cleanliness", "accuracy", "communication", "location",
+                    "check_in", "value"
+                }:
+                    prepared[field] = _rating(
+                        value, field.replace("_", " ").title()
+                    )
+
+        return prepared
 
     @staticmethod
     def _store(repository, obj):
