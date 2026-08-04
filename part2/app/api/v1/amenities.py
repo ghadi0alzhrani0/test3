@@ -9,7 +9,9 @@ from app.services import facade
 api = Namespace("amenities", description="Amenity operations")
 
 amenity_model = api.model("Amenity", {
-    "name": fields.String(required=True, description="Name of the amenity")
+    "name": fields.String(required=True, description="Name of the amenity"),
+    "description": fields.String(description="Amenity description"),
+    "category_id": fields.String(description="Amenity category ID")
 })
 
 
@@ -17,7 +19,9 @@ def serialize_amenity(amenity):
     """Return a JSON-ready amenity dictionary."""
     return {
         "id": amenity.id,
-        "name": amenity.name
+        "name": amenity.name,
+        "description": amenity.description,
+        "category_id": amenity.category.id if amenity.category else None
     }
 
 
