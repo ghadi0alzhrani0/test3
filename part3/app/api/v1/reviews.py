@@ -26,7 +26,9 @@ def serialize_review(review, include_relationships=True):
     data = {
         "id": review.id,
         "text": review.text,
-        "rating": review.rating
+        "rating": review.rating,
+        "created_at": review.created_at.isoformat(),
+        "updated_at": review.updated_at.isoformat()
     }
 
     if include_relationships:
@@ -110,7 +112,7 @@ class ReviewResource(Resource):
         except ValueError as exc:
             return {"error": str(exc)}, 400
 
-        return {"message": "Review updated successfully"}, 200
+        return serialize_review(review), 200
 
     @jwt_required()
     @api.response(200, "Review deleted successfully")

@@ -93,7 +93,9 @@ def serialize_place_creation(place):
         "latitude": place.latitude,
         "longitude": place.longitude,
         "owner_id": place.owner.id,
-        "amenities": [amenity.id for amenity in place.amenities]
+        "amenities": [amenity.id for amenity in place.amenities],
+        "created_at": place.created_at.isoformat(),
+        "updated_at": place.updated_at.isoformat()
     }
 
 
@@ -102,6 +104,7 @@ def serialize_place_summary(place):
     return {
         "id": place.id,
         "title": place.title,
+        "price": place.price,
         "latitude": place.latitude,
         "longitude": place.longitude
     }
@@ -124,7 +127,9 @@ def serialize_place_details(place):
         "reviews": [
             serialize_review_summary(review)
             for review in place.reviews
-        ]
+        ],
+        "created_at": place.created_at.isoformat(),
+        "updated_at": place.updated_at.isoformat()
     }
 
 
@@ -189,7 +194,7 @@ class PlaceResource(Resource):
         except ValueError as exc:
             return {"error": str(exc)}, 400
 
-        return {"message": "Place updated successfully"}, 200
+        return serialize_place_details(place), 200
 
     @jwt_required()
     @api.response(200, "Place deleted successfully")
