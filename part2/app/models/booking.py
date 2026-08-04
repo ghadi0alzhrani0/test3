@@ -53,6 +53,7 @@ class Booking(BaseModel):
         self.status = status
         self.guest_details = None
         self.history = []
+        self.guest_review = None
         place.bookings.append(self)
         user.bookings.append(self)
 
